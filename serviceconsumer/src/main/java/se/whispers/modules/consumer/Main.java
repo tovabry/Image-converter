@@ -3,39 +3,35 @@ package se.whispers.modules.consumer;
 import se.whispers.modules.service.imageconverter.ImageConverterException;
 
 import java.io.File;
-import java.net.URL;
 import java.util.Scanner;
 
 public class Main {
-    static URL jpgUrl = Main.class.getClassLoader().getResource("sample.jpg");
-    static URL pngUrl = Main.class.getClassLoader().getResource("sample.png");
-    static URL outputJpg = Main.class.getClassLoader().getResource("output.jpg");
-    static URL outputPng = Main.class.getClassLoader().getResource("output.png");
+    private static final String INPUT_DIR = "/app/input";
+    private static final String OUTPUT_DIR = "/app/output";
     static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) throws ImageConverterException {
-
+        // Create output directory if it doesn't exist
+        new File(OUTPUT_DIR).mkdirs();
         printServiceLoaderInfo();
-
     }
 
     private static void printServiceLoaderInfo() throws ImageConverterException {
         while (true) {
-
-            System.out.println("\n" + "Please select an option: " + "\n" +
-                    "1. Convert JPG to PNG" + "\n" +
-                    "2. Convert PNG to JPG" + "\n" +
-                    "3. Convert both JPG and PNG" + "\n" +
-                    "4. Exit" + "\n");
+            System.out.println("\nPlease select an option:\n" +
+                    "1. Convert all JPGs to PNGs\n" +
+                    "2. Convert all PNGs to JPGs\n" +
+                    "3. Convert both JPGs and PNGs\n" +
+                    "4. Exit\n");
 
             int input = scanner.nextInt();
 
             if (input == 1) {
-                runPngToJpg();
+                convertAllJpgToPng();
             } else if (input == 2) {
-                runJpgToPng();
+                convertAllPngToJpg();
             } else if (input == 3) {
-                runBoth();
+                convertAllFiles();
             } else if (input == 4) {
                 System.out.println("Exiting the program...");
                 break;
@@ -45,56 +41,48 @@ public class Main {
         }
     }
 
-    private static void runJpgToPng() throws ImageConverterException {
+    private static void convertAllJpgToPng() throws ImageConverterException {
+        File inputDir = new File(INPUT_DIR);
+        File[] jpgFiles = inputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg"));
 
-        if (outputPng != null) {
-            System.out.println("Output JPG file found, deleting the file before making a new one");
-            File outputJpgFile = new File(outputJpg.getPath());
-            if (outputJpgFile.delete()) {
-                System.out.println("Output JPG file deleted successfully");
-            } else {
-                System.out.println("Failed to delete output JPG file");
-            }
+        if (jpgFiles == null || jpgFiles.length == 0) {
+            System.out.println("No JPG files found in input directory");
+            return;
         }
 
-        System.out.println("JPG file found, converting the JPG file to PNG");
-        JpgToPng jpgToPng = new JpgToPng();
-        jpgToPng.convertJpgToPng(jpgUrl.getPath(), new File("serviceconsumer/src/main/resources/output.png").getAbsolutePath());
+        JpgToPng converter = new JpgToPng();
+        for (File jpg : jpgFiles) {
+            String outputName = jpg.getName().replace(".jpg", ".png");
+            System.out.println("Converting " + jpg.getName() + " to PNG");
+            converter.convertJpgToPng(
+                    jpg.getAbsolutePath(),
+                    new File(OUTPUT_DIR, outputName).getAbsolutePath()
+            );
+        }
     }
 
-    private static void runPngToJpg() throws ImageConverterException {
-        if (outputJpg != null) {
-            System.out.println("Output PNG file found, deleting the file before making a new one");
-            File outputPngFile = new File(outputJpg.getPath());
-            if (outputPngFile.delete()) {
-                System.out.println("Output PNG file deleted successfully");
-            } else {
-                System.out.println("Failed to delete output PNG file");
-            }
+    private static void convertAllPngToJpg() throws ImageConverterException {
+        File inputDir = new File(INPUT_DIR);
+        File[] pngFiles = inputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+
+        if (pngFiles == null || pngFiles.length == 0) {
+            System.out.println("No PNG files found in input directory");
+            return;
         }
 
-        System.out.println("PNG file found, converting the PNG file to JPG");
-        PngToJpg pngToJpg = new PngToJpg();
-        pngToJpg.convertPngToJpg(pngUrl.getPath(), new File("serviceconsumer/src/main/resources/output.jpg").getAbsolutePath());
-    }
-
-    private static void runBoth() throws ImageConverterException {
-        if ((outputJpg != null) && (outputPng != null)) {
-            System.out.println("Output JPG and PNG files found, deleting the files before making new ones");
-            File outputJpgFile = new File(outputJpg.getPath());
-            File outputPngFile = new File(outputPng.getPath());
-            if (outputJpgFile.delete() && outputPngFile.delete()) {
-                System.out.println("Output JPG and PNG files deleted successfully");
-            } else {
-                System.out.println("Failed to delete output JPG and PNG files");
-            }
+        PngToJpg converter = new PngToJpg();
+        for (File png : pngFiles) {
+            String outputName = png.getName().replace(".png", ".jpg");
+            System.out.println("Converting " + png.getName() + " to JPG");
+            converter.convertPngToJpg(
+                    png.getAbsolutePath(),
+                    new File(OUTPUT_DIR, outputName).getAbsolutePath()
+            );
         }
-
-        System.out.println("Both JPG and PNG files found, converting the JPG file to PNG");
-        JpgToPng jpgToPng = new JpgToPng();
-        PngToJpg pngToJpg = new PngToJpg();
-        jpgToPng.convertJpgToPng(jpgUrl.getPath(), new File("serviceconsumer/src/main/resources/output.png").getAbsolutePath());
-        pngToJpg.convertPngToJpg(pngUrl.getPath(), new File("serviceconsumer/src/main/resources/output.jpg").getAbsolutePath());
     }
 
+    private static void convertAllFiles() throws ImageConverterException {
+        convertAllJpgToPng();
+        convertAllPngToJpg();
+    }
 }
