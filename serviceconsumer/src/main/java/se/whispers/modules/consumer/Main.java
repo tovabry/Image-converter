@@ -19,9 +19,9 @@ public class Main {
     private static void printServiceLoaderInfo() throws ImageConverterException {
         while (true) {
             System.out.println("\nPlease select an option:\n" +
-                    "1. Convert all JPGs to PNGs\n" +
-                    "2. Convert all PNGs to JPGs\n" +
-                    "3. Convert both JPGs and PNGs\n" +
+                    "1. Convert JPG to PNG\n" +
+                    "2. Convert PNG to JPG\n" +
+                    "3. Convert both JPG and PNG\n" +
                     "4. Exit\n");
 
             int input = scanner.nextInt();
