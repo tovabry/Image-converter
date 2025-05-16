@@ -21,4 +21,14 @@ public class PngToJpgConverter implements ImageConverter {
         }
     }
 
+    @Override
+    public String getSourceFormat() {
+        return "png";
+    }
+
+    @Override
+    public String getTargetFormat() {
+        return "jpg";
+    }
+
 }

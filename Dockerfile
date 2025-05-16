@@ -8,8 +8,6 @@ RUN mkdir -p input
 RUN mkdir -p output
 
 COPY runtime/*.jar ./runtime/
-COPY serviceconsumer/src/main/resources/*.jpg ./serviceconsumer/src/main/resources/
-COPY serviceconsumer/src/main/resources/*.png ./serviceconsumer/src/main/resources/
 
 RUN chmod -R 777 /app/input
 RUN chmod -R 777 /app/output

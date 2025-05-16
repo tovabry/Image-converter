@@ -1,9 +1,13 @@
 package se.whispers.modules.consumer;
 
+import se.whispers.modules.service.imageconverter.ImageConverter;
 import se.whispers.modules.service.imageconverter.ImageConverterException;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
+import java.util.ServiceLoader;
 
 public class Main {
     private static final String INPUT_DIR = "/app/input";
@@ -11,28 +15,32 @@ public class Main {
     static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) throws ImageConverterException {
-        // Create output directory if it doesn't exist
         new File(OUTPUT_DIR).mkdirs();
-        printServiceLoaderInfo();
+        showMenu();
     }
 
-    private static void printServiceLoaderInfo() throws ImageConverterException {
+    private static void showMenu() throws ImageConverterException {
+        List<ImageConverter> converters = loadConverters();
+
         while (true) {
-            System.out.println("\nPlease select an option:\n" +
-                    "1. Convert JPG to PNG\n" +
-                    "2. Convert PNG to JPG\n" +
-                    "3. Convert both JPG and PNG\n" +
-                    "4. Exit\n");
+            System.out.println("\nAvailable converters:");
+            for (int i = 0; i < converters.size(); i++) {
+                ImageConverter converter = converters.get(i);
+                System.out.printf("%d. Convert %s to %s%n",
+                        i + 1,
+                        converter.getSourceFormat(),
+                        converter.getTargetFormat());
+            }
+            System.out.printf("%d. Convert all%n", converters.size() + 1);
+            System.out.printf("%d. Exit%n", converters.size() + 2);
 
             int input = scanner.nextInt();
 
-            if (input == 1) {
-                convertAllJpgToPng();
-            } else if (input == 2) {
-                convertAllPngToJpg();
-            } else if (input == 3) {
-                convertAllFiles();
-            } else if (input == 4) {
+            if (input >= 1 && input <= converters.size()) {
+                convertFiles(converters.get(input - 1));
+            } else if (input == converters.size() + 1) {
+                convertAllFiles(converters);
+            } else if (input == converters.size() + 2) {
                 System.out.println("Exiting the program...");
                 break;
             } else {
@@ -41,48 +49,40 @@ public class Main {
         }
     }
 
-    private static void convertAllJpgToPng() throws ImageConverterException {
-        File inputDir = new File(INPUT_DIR);
-        File[] jpgFiles = inputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".jpg"));
+    private static List<ImageConverter> loadConverters() {
+        ServiceLoader<ImageConverter> loader = ServiceLoader.load(ImageConverter.class);
+        List<ImageConverter> converters = new ArrayList<>();
+        loader.forEach(converters::add);
+        return converters;
+    }
 
-        if (jpgFiles == null || jpgFiles.length == 0) {
-            System.out.println("No JPG files found in input directory");
+    private static void convertFiles(ImageConverter converter) throws ImageConverterException {
+        File inputDir = new File(INPUT_DIR);
+        File[] files = inputDir.listFiles((dir, name) ->
+                name.toLowerCase().endsWith("." + converter.getSourceFormat().toLowerCase()));
+
+        if (files == null || files.length == 0) {
+            System.out.println("No " + converter.getSourceFormat() + " files found");
             return;
         }
 
-        JpgToPng converter = new JpgToPng();
-        for (File jpg : jpgFiles) {
-            String outputName = jpg.getName().replace(".jpg", ".png");
-            System.out.println("Converting " + jpg.getName() + " to PNG");
-            converter.convertJpgToPng(
-                    jpg.getAbsolutePath(),
+        for (File file : files) {
+            String outputName = file.getName().replace(
+                    "." + converter.getSourceFormat().toLowerCase(),
+                    "." + converter.getTargetFormat().toLowerCase());
+            System.out.printf("Converting %s to %s%n",
+                    file.getName(),
+                    converter.getTargetFormat());
+            converter.convert(
+                    file.getAbsolutePath(),
                     new File(OUTPUT_DIR, outputName).getAbsolutePath()
             );
         }
     }
 
-    private static void convertAllPngToJpg() throws ImageConverterException {
-        File inputDir = new File(INPUT_DIR);
-        File[] pngFiles = inputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
-
-        if (pngFiles == null || pngFiles.length == 0) {
-            System.out.println("No PNG files found in input directory");
-            return;
+    private static void convertAllFiles(List<ImageConverter> converters) throws ImageConverterException {
+        for (ImageConverter converter : converters) {
+            convertFiles(converter);
         }
-
-        PngToJpg converter = new PngToJpg();
-        for (File png : pngFiles) {
-            String outputName = png.getName().replace(".png", ".jpg");
-            System.out.println("Converting " + png.getName() + " to JPG");
-            converter.convertPngToJpg(
-                    png.getAbsolutePath(),
-                    new File(OUTPUT_DIR, outputName).getAbsolutePath()
-            );
-        }
-    }
-
-    private static void convertAllFiles() throws ImageConverterException {
-        convertAllJpgToPng();
-        convertAllPngToJpg();
     }
 }
